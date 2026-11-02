@@ -3,6 +3,8 @@ package dev.pluto.template.webview
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.http.SslError
+import android.webkit.SslErrorHandler
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -64,5 +66,15 @@ private class PolicyClient(
         error: WebResourceError,
     ) {
         if (request.isForMainFrame) listener.onLoadFailed()
+    }
+
+    // A certificate the device does not trust ends the load and shows the failed state; there is no way to continue past it.
+    override fun onReceivedSslError(
+        view: WebView,
+        handler: SslErrorHandler,
+        error: SslError,
+    ) {
+        handler.cancel()
+        listener.onLoadFailed()
     }
 }

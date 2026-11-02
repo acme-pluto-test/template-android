@@ -1,11 +1,14 @@
 package dev.pluto.template.debug
 
+import android.util.Log
 import dev.pluto.template.domain.Token
 import dev.pluto.template.domain.TokenProvider
 import dev.pluto.template.webview.WebConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -22,12 +25,19 @@ fun interface TokenFetch {
 
 /** A POST over https with short timeouts and a small answer; nothing about the call is logged. */
 class HttpsTokenFetch : TokenFetch {
-    override suspend fun fetch(url: String): String {
+    // the caller may be on the main thread: the call itself never is
+    override suspend fun fetch(url: String): String = withContext(Dispatchers.IO) { request(url) }
+
+    private fun request(url: String): String {
         val connection = URI(url).toURL().openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"
+            // Android's HttpURLConnection refuses a POST that never opens its body; the issuer ignores it
+            connection.doOutput = true
+            connection.setFixedLengthStreamingMode(0)
             connection.connectTimeout = TIMEOUT_MS
             connection.readTimeout = TIMEOUT_MS
+            connection.outputStream.close()
             check(connection.responseCode == HttpURLConnection.HTTP_OK) { "the issuer answered ${connection.responseCode}" }
             return connection.inputStream.use { input ->
                 val buffer = ByteArray(MAX_BYTES)
@@ -90,6 +100,8 @@ class DevTokenProvider
             } catch (
                 @Suppress("TooGenericExceptionCaught") failure: Exception,
             ) {
+                // the kind of failure only: never the message, which could carry the address of the call
+                Log.w(TAG, "token request failed: ${failure.javaClass.simpleName}")
                 null
             }
 
@@ -101,5 +113,6 @@ class DevTokenProvider
 
         companion object {
             const val TOKEN_PATH = "/dev/token"
+            private const val TAG = "PlutoDev"
         }
     }
