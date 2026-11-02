@@ -1,0 +1,33 @@
+# Starts from the detekt defaults; what is changed here is a decision of the repository.
+build:
+  maxIssues: 0
+
+style:
+  MagicNumber:
+    ignoreNamedArgument: true
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotation: true
+    excludes: ["**/test/**"]
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    max: 3
+  UnusedPrivateMember:
+    active: true
+
+complexity:
+  LongMethod:
+    threshold: 80
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 10
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    thresholdInFiles: 15
+    thresholdInClasses: 15
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ["Composable"]
+    excludes: ["**/test/**"]
